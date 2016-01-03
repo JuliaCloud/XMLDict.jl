@@ -1,12 +1,13 @@
-## XMLDict.jl
+# XMLDict.jl
 
 XMLDict implements an Associative interface (`get()`, `getindex()`,
-`haskey()` for the XMLDocument and XMLElement objects returned by
+`haskey()`) for the XMLDocument and XMLElement objects returned by
 [LightXML.jl](https://github.com/JuliaLang/LightXML.jl).
 
 
+## Examples
 
-Extract the content of a single tag:
+Extract the content of a single tag...
 
 ```julia
 xml = parse_xml("""
@@ -17,11 +18,10 @@ xml = parse_xml("""
 </CreateQueueResponse>
 """)
 
-@test xml["CreateQueueResult"]["QueueUrl"] ==
-      "http://queue.amazonaws.com/123456789012/testQueue"
+@test xml["CreateQueueResult"]["QueueUrl"] == "http://queue.amazonaws.com/123456789012/testQueue"
 ```
 
-Extract an attribute from a tag by using a `:` symbol as key.
+Extract an attribute from a tag by using a `:symbol` as key...
 
 ```julia
 xml = parse_xml("""
@@ -33,7 +33,7 @@ xml = parse_xml("""
 ```
 
 
-Extract a list of tag content:
+Extract a list of tag content...
 
 ```julia
 xml = parse_xml("""
@@ -45,10 +45,10 @@ xml = parse_xml("""
 </ListAllMyBucketsResult>
 """)
 
-@test [b["Name"] in xml["Buckets"]["Bucket"]] == ["quotes", "samples"]
+@test [b["Name"] for b in xml["Buckets"]["Bucket"]] == ["quotes", "samples"]
 ```
 
-Extract a dictionary of tag content:
+Extract a dictionary of `<Name>`, `<Value>` tags content...
 
 ```julia
 
@@ -73,7 +73,7 @@ Dict with 4 entries:
 ```
 
 
-Convert entire XML document to a Julia Dict, then to JSON:
+Convert entire XML document to a Julia Dict...
 
 ```xml
 xml="""
@@ -104,44 +104,35 @@ xml="""
 ```
 
 ```julia
-json(xml_dict(xml))
-```
+xml_string = xml_dict(xml)
 
-```json
-{ version: '1.0',
-  encoding: 'UTF-8',
-  bookstore:
-   { brand: 'amazon',
-     book:
-      [ { category: 'COOKING',
-          tag: 'first',
-          title:
-           { lang: 'en',
-             text: '\n        Everyday Italian\n    ' },
-          author: 'Giada De Laurentiis',
-          year: '2005',
-          price: '30.00',
-          extract:
-           { copyright: 'NA',
-             text:
-              [ 'The ',
-                { b: 'bold' },
-                ' word is ',
-                { b: { i: 'not' } },
-                ' ',
-                { i: 'italic' },
-                '.' ] } },
-        { category: 'CHILDREN',
-          title: { lang: 'en', text: 'Harry Potter' },
-          author: 'J K. Rowling',
-          year: '2005',
-          price: '29.99',
-          foo: '<sender>John Smith</sender>',
-          extract:
-           [ 'Click ',
-             { a:
-                { href: 'foobar.com',
-                  text: [ 'right ', { b: 'here' } ] } },
-             ' for foobar.' ] } ],
-     metadata: { foo: 'hello!' } } }
+Dict(
+    :version=>"1.0",
+    :encoding=>"UTF-8",
+    "bookstore"=>Dict(
+        :brand=>"amazon",
+        "book"=>[
+            Dict(
+                :category=>"COOKING",
+                :tag=>"first",
+                "title"=>Dict(:lang=>"en",:text=>"Everyday Italian"),
+                "author"=>"Giada De Laurentiis",
+                "year"=>"2005",
+                "price"=>"30.00",
+                "extract"=>Dict(
+                    :copyright=>"NA",
+                    :text=>["The ",Dict("b"=>"bold")," word is ", Dict("b"=>Dict("i"=>"not"))," ",Dict("i"=>"italic"),"."])
+            ),
+            Dict(
+                :category=>"CHILDREN",
+                "title"=>Dict(:lang=>"en",:text=>"Harry Potter"),
+                "author"=>"J K. Rowling",
+                "year"=>"2005",
+                "price"=>"29.99",
+                "foo"=>"<sender>John Smith</sender>",
+                "extract"=>["Click ",Dict("a"=>Dict(:href=>"foobar.com",:text=>Any["right ",Dict("b"=>"here")]))," for foobar."]
+            )],
+        "metadata"=>Dict("foo"=>"hello!")
+    )
+)
 ```
