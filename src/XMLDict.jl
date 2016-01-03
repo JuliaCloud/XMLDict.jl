@@ -116,8 +116,25 @@ function xml_dict(x::XMLElement, dict_type::Type; strip_text=false)
 
     # Check for non-empty text nodes under this element...
     element_has_text = any(has_text, child_nodes(x))
-    if element_has_text
-        r[:text] = Any[]
+
+    # Check for non-contiguous repitiion of sub-element tags...
+    element_has_mixed_tags = false
+    tags = [""]
+    for c in child_elements(x)
+        tag = name(c)
+        if tag != tags[end]
+            if tag in tags
+                element_has_mixed_tags = true
+                break
+            end
+            push!(tags, tag)
+        end
+    end
+
+    # The empty-string key holds a vector of sub-elements.
+    # This is necessary when grouping sub-elements would alter ordering...
+    if element_has_text || element_has_mixed_tags
+        r[""] = Any[]
     end
 
     for c in child_nodes(x)
@@ -129,11 +146,11 @@ function xml_dict(x::XMLElement, dict_type::Type; strip_text=false)
             n = name(c)
             v = xml_dict(c,dict_type;strip_text=strip_text)
 
-            if haskey(r, :text)
+            if haskey(r, "")
 
                 # If this is a text element, embed sub-dict in text vector...
                 # "The <b>bold</b> tag" == ["The", Dict("b" => "bold"), "tag"]
-                push!(r[:text], dict_type(n => v))
+                push!(r[""], dict_type(n => v))
 
             elseif haskey(r, n)
 
@@ -146,21 +163,21 @@ function xml_dict(x::XMLElement, dict_type::Type; strip_text=false)
                 r[n] = v
             end
 
-        elseif is_text(c) && haskey(r, :text)
-            push!(r[:text], content(c))
+        elseif is_text(c) && haskey(r, "")
+            push!(r[""], content(c))
         end
     end
 
     # Collapse text-only elements...
-    if haskey(r, :text)
-        if length(r[:text]) == 1
-            r[:text] = r[:text][1]
+    if haskey(r, "")
+        if length(r[""]) == 1
+            r[""] = r[""][1]
             if strip_text
-                r[:text] = strip(r[:text])
+                r[""] = strip(r[""])
             end
         end
         if length(r) == 1
-            r = r[:text]
+            r = r[""]
         end
     end
 
@@ -195,7 +212,7 @@ function _dict_xml(node::Associative)
     for (n,v) in node
 
         # Ignore attributes of parent element...
-        if isa(n, Symbol) && n != :text
+        if isa(n, Symbol) && n != ""
             continue
         end
         # Expand homogeneous array of elements...
@@ -208,11 +225,11 @@ function _dict_xml(node::Associative)
         end
 
         # Emmit <tag attrs...> for non text nodes...
-        if n != :text
+        if n != ""
             xml *= "<$n"
             if typeof(v) <: Associative
                 for (an,av) in v
-                    if isa(an, Symbol) && an != :text
+                    if isa(an, Symbol) && an != ""
                         xml *= " $an=\"$av\""
                     end
                 end
@@ -242,7 +259,7 @@ function _dict_xml(node::Associative)
         end
 
         # Close </tag>...
-        if n != :text
+        if n != ""
             xml *= "</$n>"
         end
     end

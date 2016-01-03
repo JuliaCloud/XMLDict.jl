@@ -179,7 +179,7 @@ xml6 = """
     <year>2005</year>
     <price>29.99</price>
     <foo><![CDATA[<sender>John Smith</sender>]]></foo>
-    <extract>Click <a href="foobar.com">right <b>here</b></a> for foobar.</extract>
+    <extract><p>Click <a href="foobar.com">right <b>here</b></a> for foobar.</p><b>Bold</b><p>Para2</p></extract>
   </book>
   <metadata>
        <foo>hello!</foo>

@@ -115,22 +115,22 @@ Dict(
             Dict(
                 :category=>"COOKING",
                 :tag=>"first",
-                "title"=>Dict(:lang=>"en",:text=>"Everyday Italian"),
+                "title"=>Dict(:lang=>"en",""=>"Everyday Italian"),
                 "author"=>"Giada De Laurentiis",
                 "year"=>"2005",
                 "price"=>"30.00",
                 "extract"=>Dict(
                     :copyright=>"NA",
-                    :text=>["The ",Dict("b"=>"bold")," word is ", Dict("b"=>Dict("i"=>"not"))," ",Dict("i"=>"italic"),"."])
+                    ""=>["The ",Dict("b"=>"bold")," word is ", Dict("b"=>Dict("i"=>"not"))," ",Dict("i"=>"italic"),"."])
             ),
             Dict(
                 :category=>"CHILDREN",
-                "title"=>Dict(:lang=>"en",:text=>"Harry Potter"),
+                "title"=>Dict(:lang=>"en",""=>"Harry Potter"),
                 "author"=>"J K. Rowling",
                 "year"=>"2005",
                 "price"=>"29.99",
                 "foo"=>"<sender>John Smith</sender>",
-                "extract"=>["Click ",Dict("a"=>Dict(:href=>"foobar.com",:text=>Any["right ",Dict("b"=>"here")]))," for foobar."]
+                "extract"=>["Click ",Dict("a"=>Dict(:href=>"foobar.com",""=>["right ",Dict("b"=>"here")]))," for foobar."]
             )],
         "metadata"=>Dict("foo"=>"hello!")
     )
