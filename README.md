@@ -1,8 +1,8 @@
 # XMLDict.jl
 
 XMLDict implements an Associative interface (`get()`, `getindex()`,
-`haskey()`) for the XMLDocument and XMLElement objects returned by
-[LightXML.jl](https://github.com/JuliaLang/LightXML.jl).
+`haskey()`) for reading XML elements and attributes.
+Requires [LightXML.jl](https://github.com/JuliaLang/LightXML.jl).
 
 
 ## Examples
