@@ -117,12 +117,12 @@ function xml_dict(x::XMLElement, dict_type::Type; strip_text=false)
     # Check for non-empty text nodes under this element...
     element_has_text = any(has_text, child_nodes(x))
 
-    # Check for non-contiguous repitiion of sub-element tags...
+    # Check for non-contiguous repetition of sub-element tags...
     element_has_mixed_tags = false
-    tags = [""]
+    tags = []
     for c in child_elements(x)
         tag = name(c)
-        if tag != tags[end]
+        if isempty(tags) || tag != tags[end]
             if tag in tags
                 element_has_mixed_tags = true
                 break
@@ -156,7 +156,7 @@ function xml_dict(x::XMLElement, dict_type::Type; strip_text=false)
 
                 # Collect sub-elements with same tag into a vector...
                 # "<item>foo</item><item>bar</item>" == "item" => ["foo", "bar"]
-                a = isa(r[n], Array) ? r[n] : [r[n]]
+                a = isa(r[n], Array) ? r[n] : Any[r[n]]
                 push!(a, v)
                 r[n] = a
             else
@@ -168,16 +168,21 @@ function xml_dict(x::XMLElement, dict_type::Type; strip_text=false)
         end
     end
 
-    # Collapse text-only elements...
+    # Collapse leaf-node vectors containing only text...
     if haskey(r, "")
-        if length(r[""]) == 1
-            r[""] = r[""][1]
+        v = r[""]
+
+        # If the vector contains a single text element, collapse the vector...
+        if length(v) == 1 && typeof(v[1]) <: AbstractString
             if strip_text
-                r[""] = strip(r[""])
+                v[1] = strip(v[1])
             end
-        end
-        if length(r) == 1
-            r = r[""]
+            r[""] = v[1]
+
+            # If "r" contains no other keys, collapse the "" key...
+            if length(r) == 1
+                r = r[""] 
+            end
         end
     end
 
@@ -194,78 +199,39 @@ end
 
 
 function dict_xml(root::Associative)
-    xml = "<?xml"
-    for (n,v) in root
-        if isa(n, Symbol)
-            xml *= " $n=\"$v\""
-        end
-    end
-    xml *= "?>\n"
-    xml *=_dict_xml(root)
+    string("<?xml",attr_xml(root),"?>\n", node_xml(root))
 end
 
 
-function _dict_xml(node::Associative)
+attrs(node::Associative) = filter((n,v)->isa(n, Symbol), node)
+nodes(node::Associative) = filter((n,v)->!isa(n, Symbol), node)
 
-    xml = ""
-
-    for (n,v) in node
-
-        # Ignore attributes of parent element...
-        if isa(n, Symbol) && n != ""
-            continue
-        end
-        # Expand homogeneous array of elements...
-        if (typeof(v) <: AbstractArray
-        &&  all(i -> typeof(i) == typeof(v[1]), v))
-            for i in v
-                xml *= _dict_xml(Dict(n=>i))
-            end
-            continue
-        end
-
-        # Emmit <tag attrs...> for non text nodes...
-        if n != ""
-            xml *= "<$n"
-            if typeof(v) <: Associative
-                for (an,av) in v
-                    if isa(an, Symbol) && an != ""
-                        xml *= " $an=\"$av\""
-                    end
-                end
-            end
-            xml *= ">"
-        end
-
-        if typeof(v) <: Associative  
-
-            # Recursive call for sub-dict...
-            xml *= _dict_xml(v)
-
-        elseif typeof(v) <: AbstractArray
-
-            # Expand heterogeneous array...
-            for i in v
-                if typeof(i) <: AbstractString
-                    xml *= i
-                else
-                    xml *= _dict_xml(i)
-                end
-            end
-        else
-
-            # Just plain text...
-            xml *= escape(v)
-        end
-
-        # Close </tag>...
-        if n != ""
-            xml *= "</$n>"
-        end
-    end
-
-    xml
+function attr_xml(node::Associative)
+    string([" $n=\"$v\"" for (n,v) in attrs(node)]...)
 end
+
+attr_xml(node) = ""
+
+
+node_xml(node) = string([node_xml(n,v) for (n,v) in nodes(node)]...)
+
+function node_xml(name::AbstractString, value::AbstractArray)
+    value_xml(name != "" ? [Dict(name=>i) for i in value] : value)
+end
+
+function node_xml(name::AbstractString, node)
+    a = attr_xml(node)
+    v = value_xml(node)
+    name == "" ? v : string("<",name,a,v == "" ? "/>" : ">$v</$name>")
+end
+
+
+value_xml(value::Associative) = node_xml(value)
+
+value_xml(value::AbstractArray) = string([value_xml(v) for v in value]...)
+
+value_xml(value::AbstractString) = escape(value)
+
 
 
 import LightXML: Xstr, Xptr, _xcopystr, libxml2
