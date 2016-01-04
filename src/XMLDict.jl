@@ -129,8 +129,8 @@ end
 # Does this node have any text?
 
 is_text(x::XMLNode) = is_textnode(x) || is_cdatanode(x)
-Base.isempty(x::XMLNode) = isspace(content(x))
-has_text(x::XMLNode) = is_text(x) && !isempty(x)
+is_empty(x::XMLNode) = isspace(content(x))
+has_text(x::XMLNode) = is_text(x) && !is_empty(x)
 
 
 # Return Dict representation of XMLElement.
