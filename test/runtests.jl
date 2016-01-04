@@ -25,7 +25,7 @@ end
 xml1 = """
 <CreateQueueResponse>
     <CreateQueueResult>
-        <QueueUrl>
+        <QueueUrl flavour="orange">
             http://queue.amazonaws.com/123456789012/testQueue
         </QueueUrl>
     </CreateQueueResult>
@@ -37,12 +37,15 @@ xml1 = """
 </CreateQueueResponse>
 """
 
-@test parse_xml(xml1)["CreateQueueResult"]["QueueUrl"] ==
+@test parse_xml(xml1)["CreateQueueResult"]["QueueUrl"][""] ==
       "http://queue.amazonaws.com/123456789012/testQueue"
 
-@test xdict(xml1)["CreateQueueResult"]["QueueUrl"] ==
+@test xdict(xml1)["CreateQueueResult"]["QueueUrl"][""] ==
       "http://queue.amazonaws.com/123456789012/testQueue"
 
+@test parse_xml(xml1)["CreateQueueResult"]["QueueUrl"][:flavour] == "orange"
+
+@test xdict(xml1)["CreateQueueResult"]["QueueUrl"][:flavour] == "orange"
 
 
 xml2 = """

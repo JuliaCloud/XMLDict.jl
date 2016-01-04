@@ -35,11 +35,17 @@ parse_xml(xml::AbstractString) = LightXML.parse_string(xml)
 # For leaf-nodes return element content (text).
 
 function Base.getindex(x::XMLElement, tag::AbstractString)
+
+    if tag == ""
+        return strip(content(x))
+    end
+
     l = get_elements_by_tagname(x, tag)
     if isempty(l)
         return nothing
     end
-    if isempty(child_elements(l[1]))
+    if isempty(child_elements(l[1])) &&
+       isempty(attributes(l[1]))
         l = [strip(content(i)) for i in l]
     end
     return length(l) == 1 ? l[1] : l
