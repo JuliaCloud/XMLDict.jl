@@ -100,7 +100,7 @@ end
 function xml_dict(xml::XMLDocument, dict_type::Type=OrderedDict; options...)
     r = dict_type()
     r[:version] = version(xml)
-    if encoding(xml) != nothing
+    try #FIXME see https://github.com/JuliaLang/LightXML.jl/issues/40
         r[:encoding] = encoding(xml)
     end
     r[name(root(xml))] = xml_dict(root(xml), dict_type; options...)
