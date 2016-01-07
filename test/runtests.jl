@@ -40,6 +40,13 @@ xml1 = """
 @test parse_xml(xml1)["CreateQueueResult"]["QueueUrl"][""] ==
       "http://queue.amazonaws.com/123456789012/testQueue"
 
+@test haskey(parse_xml(xml1), "CreateQueueResult")
+@test !haskey(parse_xml(xml1), "Foo")
+@test haskey(parse_xml(xml1)["CreateQueueResult"], "QueueUrl")
+@test !haskey(parse_xml(xml1)["CreateQueueResult"], "Foo")
+
+@test get(parse_xml(xml1)["CreateQueueResult"], "Foo", "Bar") == "Bar"
+
 @test xdict(xml1)["CreateQueueResult"]["QueueUrl"][""] ==
       "http://queue.amazonaws.com/123456789012/testQueue"
 

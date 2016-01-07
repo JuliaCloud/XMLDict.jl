@@ -16,23 +16,17 @@ using DataStructures
 
 
 #-------------------------------------------------------------------------------
-# Type wrapper.
+# Associative type wrapper.
 #-------------------------------------------------------------------------------
 
+type XMLDictElement <:Associative x end
 
-if true
-    type XMLDictElement x end
-    wrap(x) = XMLDictElement(x)
-    wrap(l::Vector) = [wrap(i) for i in l]
-    Base.getindex(x::XMLDictElement, args...) = XMLDict.getindex(x.x, args...)
-    Base.haskey(x::XMLDictElement, args...) = XMLDict.haskey(x.x, args...)
-    Base.get(x::XMLDictElement, args...) = XMLDict.get(x.x, args...)
-    xml_dict(x, args...; options...) = xml_dict(x.x, args...; options...)
-else
-    typealias XMLDictElement XMLElement
-    wrap(x) = x
-end
+wrap(x) = XMLDictElement(x)
+wrap(l::Vector) = [wrap(i) for i in l]
 
+Base.get(x::XMLDictElement, args...) = XMLDict.get(x.x, args...)
+
+xml_dict(x, args...; options...) = xml_dict(x.x, args...; options...)
 
 
 
@@ -55,7 +49,7 @@ parse_xml(xml::AbstractString) = wrap(LightXML.parse_string(xml))
 # Get sub-elements that match tag.
 # For leaf-nodes return element content (text).
 
-function XMLDict.getindex(x::XMLElement, tag::AbstractString)
+function XMLDict.get(x::XMLElement, tag::AbstractString, default)
 
     if tag == ""
         return strip(content(x))
@@ -63,7 +57,7 @@ function XMLDict.getindex(x::XMLElement, tag::AbstractString)
 
     l = get_elements_by_tagname(x, tag)
     if isempty(l)
-        return nothing
+        return default
     end
     if isempty(child_elements(l[1])) &&
        isempty(attributes(l[1]))
@@ -77,26 +71,14 @@ end
 
 # Get element attribute by "name".
 
-XMLDict.getindex(x::XMLElement, name::Symbol) = attribute(x, string(name))
-
-
-# Get with default value.
-
-function XMLDict.get(x::XMLElement, tag, default)
-    r = getindex(x, tag)
+function XMLDict.get(x::XMLElement, name::Symbol, default)
+    r = attribute(x, string(name))
     r != nothing ? r : default
 end
 
 
-# Check for existance of tag.
-
-XMLDict.haskey(x::XMLElement, tag) = getindex(x, tag) != nothing
-
-
 # Wrappers for XMLDocument.
 
-XMLDict.getindex(x::XMLDocument, tag) = getindex(root(x), tag)
-XMLDict.haskey(x::XMLDocument, tag) = haskey(root(x), tag)
 XMLDict.get(x::XMLDocument, tag, default) = get(root(x), tag, default)
 
 
