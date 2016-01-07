@@ -117,7 +117,7 @@ has_text(x::XMLNode) = is_text(x) && !is_empty(x)
 
 # Return Dict representation of XMLElement.
 
-function xml_dict(x::XMLElement, dict_type::Type; strip_text=false)
+function xml_dict(x::XMLElement, dict_type::Type=OrderedDict; strip_text=false)
 
     # Copy element attributes into dict...
     r = dict_type()
