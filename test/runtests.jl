@@ -436,8 +436,6 @@ function normalise_xml(xml)
     readall(o)
 end
 
-eval(Expr(:using, :JSON))
-
 
 
 for xml in [xml1, xml2, xml3, xml4, xml5, xml6, xml7, xml8, xml9, xml10]
