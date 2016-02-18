@@ -5,6 +5,9 @@
 #==============================================================================#
 
 
+__precompile__()
+
+
 module XMLDict
 
 export parse_xml, xml_dict
@@ -19,14 +22,21 @@ using DataStructures
 # Associative type wrapper.
 #-------------------------------------------------------------------------------
 
-type XMLDictElement <:Associative x end
+type XMLDictElement <:Associative{Union{AbstractString,Symbol},AbstractString}
+    x
+end
 
 wrap(x) = XMLDictElement(x)
 wrap(l::Vector) = [wrap(i) for i in l]
 
 Base.get(x::XMLDictElement, args...) = XMLDict.get(x.x, args...)
 
+
+
 xml_dict(x, args...; options...) = xml_dict(x.x, args...; options...)
+
+
+Base.show(io::IO, x::XMLDictElement) = show(io, x.x)
 
 
 
@@ -192,7 +202,7 @@ function xml_dict(x::XMLElement, dict_type::Type=OrderedDict; strip_text=false)
 
             # If "r" contains no other keys, collapse the "" key...
             if length(r) == 1
-                r = r[""] 
+                r = r[""]
             end
         end
     end
