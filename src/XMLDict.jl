@@ -51,7 +51,11 @@ Base.show(io::IO, x::XMLDictElement) = show(io, x.x)
 
 # Parse "xml" string into LightXML.XMLDocument object.
 
-parse_xml(xml::AbstractString) = wrap(LightXML.parse_string(xml))
+function parse_xml(xml::AbstractString)
+    doc = LightXML.parse_string(xml)
+    finalizer(doc, LightXML.free)
+    return wrap(doc)
+end
 
 
 
@@ -105,7 +109,10 @@ XMLDict.get(x::XMLDocument, tag, default) = get(root(x), tag, default)
 # Return Dict representation of "xml" string.
 
 function xml_dict(xml::AbstractString, dict_type::Type=OrderedDict; options...)
-    xml_dict(parse_xml(xml), dict_type; options...)
+    doc = parse_xml(xml)
+    r = xml_dict(doc, dict_type; options...)
+    finalize(doc)
+    return r
 end
 
 
