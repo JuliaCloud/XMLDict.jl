@@ -24,14 +24,13 @@ using DataStructures
 
 type XMLDictElement <:Associative{Union{AbstractString,Symbol},AbstractString}
     x
+    doc
 end
 
-wrap(x) = XMLDictElement(x)
-wrap(l::Vector) = [wrap(i) for i in l]
+wrap(x, doc) = XMLDictElement(x, doc)
+wrap(l::Vector, doc) = [wrap(i, doc) for i in l]
 
-Base.get(x::XMLDictElement, args...) = XMLDict.get(x.x, args...)
-
-
+Base.get(x::XMLDictElement, args...) = XMLDict.get(x.x, x.doc, args...)
 
 xml_dict(x, args...; options...) = xml_dict(x.x, args...; options...)
 
@@ -54,7 +53,7 @@ Base.show(io::IO, x::XMLDictElement) = show(io, x.x)
 function parse_xml(xml::AbstractString)
     doc = LightXML.parse_string(xml)
     finalizer(doc, LightXML.free)
-    return wrap(doc)
+    return wrap(doc, doc)
 end
 
 
@@ -67,7 +66,7 @@ end
 # Get sub-elements that match tag.
 # For leaf-nodes return element content (text).
 
-function XMLDict.get(x::XMLElement, tag::AbstractString, default)
+function XMLDict.get(x::XMLElement, doc::XMLDocument, tag::AbstractString, default)
 
     if tag == ""
         return strip(content(x))
@@ -81,7 +80,7 @@ function XMLDict.get(x::XMLElement, tag::AbstractString, default)
        isempty(attributes(l[1]))
         l = [strip(content(i)) for i in l]
     else
-        l = wrap(l)
+        l = wrap(l, doc)
     end
     return length(l) == 1 ? l[1] : l
 end
@@ -89,15 +88,17 @@ end
 
 # Get element attribute by "name".
 
-function XMLDict.get(x::XMLElement, name::Symbol, default)
+function XMLDict.get(x::XMLElement, doc::XMLDocument, name::Symbol, default)
     r = attribute(x, string(name))
     r != nothing ? r : default
 end
 
 
-# Wrappers for XMLDocument.
+# Wrapper for XMLDocument.
 
-XMLDict.get(x::XMLDocument, tag, default) = get(root(x), tag, default)
+function XMLDict.get(x::XMLDocument, doc::XMLDocument, tag, default) 
+    return XMLDict.get(root(x), doc, tag, default)
+end
 
 
 
