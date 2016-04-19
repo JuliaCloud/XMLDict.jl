@@ -2,6 +2,8 @@ using XMLDict
 using Base.Test
 using JSON
 
+using Compat.readstring
+using Compat.write
 
 function xdict(xml)
     for (n,v) in xml_dict(xml; strip_text=true)
@@ -426,14 +428,14 @@ xml9 = """
 </table>
 """
 
-xml10 = readall("REC-xml-20081126.xml")
+xml10 = readstring("REC-xml-20081126.xml")
 
 function normalise_xml(xml)
     o,i,p = readandwrite(
         `bash -c 'xmllint --noent --format --nocdata - | sed s/\ xmlns=\".*\"//g' `)
     write(i, xml)
     close(i)
-    readall(o)
+    readstring(o)
 end
 
 
@@ -446,8 +448,8 @@ for xml in [xml1, xml2, xml3, xml4, xml5, xml6, xml7, xml8, xml9, xml10]
 
         json_dump(xml_dict(xml))
 
-        open("/tmp/a", "w") do f write(f, normalise_xml(xml)) end
-        open("/tmp/b", "w") do f write(f, normalise_xml(XMLDict.dict_xml(xml_dict(xml)))) end
+        write("/tmp/a", normalise_xml(xml))
+        write("/tmp/b", normalise_xml(XMLDict.dict_xml(xml_dict(xml))))
         run(`opendiff /tmp/a /tmp/b`)
     end
 
