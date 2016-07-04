@@ -127,13 +127,13 @@ xml3 = """
 """
 
 xml = parse_xml(xml3)
-d = [a["Name"] => a["Value"] for a in xml["GetQueueAttributesResult"]["Attribute"]]
+d = Dict(Pair[a["Name"] => a["Value"] for a in xml["GetQueueAttributesResult"]["Attribute"]])
 
 @test d["MessageRetentionPeriod"] == "345600"
 @test d["CreatedTimestamp"] == "1286771522"
 
 xml = xdict(xml3)
-d = [a["Name"] => a["Value"] for a in xml["GetQueueAttributesResult"]["Attribute"]]
+d = Dict(Pair[a["Name"] => a["Value"] for a in xml["GetQueueAttributesResult"]["Attribute"]])
 
 @test d["MessageRetentionPeriod"] == "345600"
 @test d["CreatedTimestamp"] == "1286771522"
