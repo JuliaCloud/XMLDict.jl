@@ -77,7 +77,7 @@ Dict with 4 entries:
 Convert entire XML document to a Julia Dict...
 
 ```xml
-xml="""
+xml_string="""
 <?xml version="1.0" encoding="UTF-8"?>
 <bookstore brand="amazon">
   <book category="COOKING" tag="first">
@@ -105,7 +105,7 @@ xml="""
 ```
 
 ```julia
-xml_string = xml_dict(xml)
+d = xml_dict(xml_string)
 
 Dict(
     :version=>"1.0",
