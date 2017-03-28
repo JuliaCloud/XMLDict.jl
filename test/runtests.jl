@@ -2,8 +2,6 @@ using XMLDict
 using Base.Test
 using JSON
 
-using Compat.readstring
-using Compat.write
 
 function xdict(xml)
     for (n,v) in xml_dict(xml; strip_text=true)
