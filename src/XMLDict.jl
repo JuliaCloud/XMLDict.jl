@@ -34,14 +34,7 @@ Base.get(x::XMLDictElement, args...) = XMLDict.get(x.x, x.doc, args...)
 
 xml_dict(x, args...; options...) = xml_dict(x.x, args...; options...)
 
-# FIXME should no be needed for Julia >= 5.0
-# Old replutil.jl calls showdict() ditectly for Accociatve !!
-# https://github.com/JuliaLang/julia/commit/4706184a424eda72aa802f465c7f45c5545143e0#diff-b662111ca543844cd53139f7a6ffa89dL45
-if VERSION < v"0.5.0-dev+4340"
-    Base.writemime(io::IO, ::MIME"text/plain", x::XMLDictElement) = show(io, x)
-end
-
-Base.show(io::IO, x::XMLDictElement) = show(io, x.x)
+Base.display(x::XMLDictElement) = display(x.x)
 
 
 
