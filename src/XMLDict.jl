@@ -34,8 +34,10 @@ Base.get(x::XMLDictElement, args...) = XMLDict.get(x.x, x.doc, args...)
 
 xml_dict(x, args...; options...) = xml_dict(x.x, args...; options...)
 
-Base.display(x::XMLDictElement) = display(x.x)
-
+# use underlying show methods from LightXML:
+Base.show(io::IO, x::XMLDictElement) = show(io, x.x)
+# need to override this to eliminate ambiguity with show(..., ::Associative):
+Base.show(io::IO, m::MIME"text/plain", x::XMLDictElement) = show(io, m, x.x)
 
 
 #-------------------------------------------------------------------------------
