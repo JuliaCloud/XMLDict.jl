@@ -15,6 +15,7 @@ export parse_xml, xml_dict
 
 using LightXML
 using DataStructures
+using IterTools
 
 
 
@@ -22,22 +23,30 @@ using DataStructures
 # Associative type wrapper.
 #-------------------------------------------------------------------------------
 
-type XMLDictElement <:Associative{Union{AbstractString,Symbol},AbstractString}
+type XMLDictElement <:Associative{Union{String, Symbol},Any}
     x
     doc
+    g
 end
 
-wrap(x, doc) = XMLDictElement(x, doc)
+wrap(x, doc) = XMLDictElement(x, doc, nothing)
 wrap(l::Vector, doc) = [wrap(i, doc) for i in l]
 
-Base.get(x::XMLDictElement, args...) = XMLDict.get(x.x, x.doc, args...)
+Base.get(x::XMLDictElement, k, d=nothing) = XMLDict.get(x.x, x.doc, k, d)
+
+Base.keys(x::XMLDictElement) = XMLDict.keys(x.x)
+Base.length(x::XMLDictElement) = length(collect(keys(x)))
+
+function Base.start(x::XMLDictElement)
+    x.g = (Pair{Union{String,Symbol},Any}(n, (get(x, n))) for n in keys(x))
+    start(x.g)
+end
+Base.done(x::XMLDictElement, s) = done(x.g, s)
+Base.next(x::XMLDictElement, s) = next(x.g, s)
 
 xml_dict(x, args...; options...) = xml_dict(x.x, args...; options...)
 
-# use underlying show methods from LightXML:
 Base.show(io::IO, x::XMLDictElement) = show(io, x.x)
-# need to override this to eliminate ambiguity with show(..., ::Associative):
-Base.show(io::IO, m::MIME"text/plain", x::XMLDictElement) = show(io, m, x.x)
 
 
 #-------------------------------------------------------------------------------
@@ -58,6 +67,11 @@ end
 #-------------------------------------------------------------------------------
 # Dynamic Associative Implementation for XMLElement
 #-------------------------------------------------------------------------------
+
+
+XMLDict.keys(x::XMLElement) = chain(distinct(name(c) for c in child_elements(x)),
+                                    (Symbol(name(a)) for a in attributes(x)))
+XMLDict.keys(x::XMLDocument) = keys(root(x))
 
 
 # Get sub-elements that match tag.
