@@ -144,7 +144,7 @@ end
 # Does this node have any text?
 
 is_text(x::XMLNode) = is_textnode(x) || is_cdatanode(x)
-is_empty(x::XMLNode) = isspace(content(x))
+is_empty(x::XMLNode) = all(isspace,content(x))
 has_text(x::XMLNode) = is_text(x) && !is_empty(x)
 
 
