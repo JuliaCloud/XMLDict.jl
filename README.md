@@ -29,6 +29,7 @@ xml = parse_xml("""
 <bookstore>
   <book category="COOKING" tag="first"/>
 <bookstore>
+""")
 
 @test xml["bookstore"]["book"][:category] == "COOKING"
 ```
