@@ -13,17 +13,18 @@ module XMLDict
 export parse_xml, xml_dict
 
 
-using LightXML
+using EzXML
 using DataStructures
+using Base.Iterators
 using IterTools
-
+using Compat
 
 
 #-------------------------------------------------------------------------------
 # Associative type wrapper.
 #-------------------------------------------------------------------------------
 
-type XMLDictElement <:Associative{Union{String, Symbol},Any}
+mutable struct XMLDictElement <: AbstractDict{Union{String,Symbol},Any}
     x
     doc
     g
@@ -54,11 +55,10 @@ Base.show(io::IO, x::XMLDictElement) = show(io, x.x)
 #-------------------------------------------------------------------------------
 
 
-# Parse "xml" string into LightXML.XMLDocument object.
+# Parse "xml" string into EzXML.Document object.
 
 function parse_xml(xml::AbstractString)
-    doc = LightXML.parse_string(xml)
-    finalizer(doc, LightXML.free)
+    doc = parsexml(xml)
     return wrap(doc, doc)
 end
 
@@ -69,27 +69,32 @@ end
 #-------------------------------------------------------------------------------
 
 
-XMLDict.keys(x::XMLElement) = chain(distinct(name(c) for c in child_elements(x)),
-                                    (Symbol(name(a)) for a in attributes(x)))
-XMLDict.keys(x::XMLDocument) = keys(root(x))
+function XMLDict.keys(x::EzXML.Node)
+    children = distinct(nodename(c) for c in eachelement(x))
+    attribs = (Symbol(nodename(c)) for c in eachattribute(x))
+    return Iterators.flatten((children, attribs))
+end
+XMLDict.keys(x::EzXML.Document) = keys(root(x))
 
 
 # Get sub-elements that match tag.
 # For leaf-nodes return element content (text).
 
-function XMLDict.get(x::XMLElement, doc::XMLDocument, tag::AbstractString, default)
+function XMLDict.get(x::EzXML.Node, doc::EzXML.Document, tag::AbstractString, default)
 
     if tag == ""
-        return strip(content(x))
+        return strip(nodecontent(x))
     end
 
-    l = get_elements_by_tagname(x, tag)
+    if !haselement(x)
+        return default
+    end
+    l = filter(el->nodename(el) == tag, elements(x))
     if isempty(l)
         return default
     end
-    if isempty(child_elements(l[1])) &&
-       isempty(attributes(l[1]))
-        l = [strip(content(i)) for i in l]
+    if !haselement(l[1]) && isempty(attributes(l[1]))
+        l = map(strip∘nodecontent, l)
     else
         l = wrap(l, doc)
     end
@@ -99,15 +104,15 @@ end
 
 # Get element attribute by "name".
 
-function XMLDict.get(x::XMLElement, doc::XMLDocument, name::Symbol, default)
-    r = attribute(x, string(name))
-    r != nothing ? r : default
+function XMLDict.get(x::EzXML.Node, doc::EzXML.Document, name::Symbol, default)
+    s = string(name)
+    haskey(x, s) ? x[s] : default
 end
 
 
-# Wrapper for XMLDocument.
+# Wrapper for EzXML.Document.
 
-function XMLDict.get(x::XMLDocument, doc::XMLDocument, tag, default) 
+function XMLDict.get(x::EzXML.Document, doc::EzXML.Document, tag, default)
     return XMLDict.get(root(x), doc, tag, default)
 end
 
@@ -123,49 +128,49 @@ end
 function xml_dict(xml::AbstractString, dict_type::Type=OrderedDict; options...)
     doc = parse_xml(xml)
     r = xml_dict(doc, dict_type; options...)
-    finalize(doc)
     return r
 end
 
 
-# Return Dict representation of XMLDocument.
+# Return Dict representation of EzXML.Document.
 
-function xml_dict(xml::XMLDocument, dict_type::Type=OrderedDict; options...)
+function xml_dict(xml::EzXML.Document, dict_type::Type=OrderedDict; options...)
     r = dict_type()
-    r[:version] = version(xml)
-    try #FIXME see https://github.com/JuliaLang/LightXML.jl/issues/40
-        r[:encoding] = encoding(xml)
-    end
-    r[name(root(xml))] = xml_dict(root(xml), dict_type; options...)
+    r[:version] = "1.0"    # FIXME: EzXML does not have a way to query the version
+    r[:encoding] = "UTF-8" # FIXME: Similarly for the encoding
+    r[nodename(root(xml))] = xml_dict(root(xml), dict_type; options...)
     r
 end
 
 
 # Does this node have any text?
 
-is_text(x::XMLNode) = is_textnode(x) || is_cdatanode(x)
-is_empty(x::XMLNode) = all(isspace,content(x))
-has_text(x::XMLNode) = is_text(x) && !is_empty(x)
+is_text(x::EzXML.Node) = istext(x) || iscdata(x)
+function is_empty(x::EzXML.Node)
+    c = nodecontent(x)
+    return isempty(c) || all(isspace, c)
+end
+has_text(x::EzXML.Node) = is_text(x) && !is_empty(x)
 
 
 # Return Dict representation of XMLElement.
 
-function xml_dict(x::XMLElement, dict_type::Type=OrderedDict; strip_text=false)
+function xml_dict(x::EzXML.Node, dict_type::Type=OrderedDict; strip_text=false)
 
     # Copy element attributes into dict...
     r = dict_type()
-    for a in attributes(x)
-        r[Symbol(name(a))] = value(a)
+    for a in eachattribute(x)
+        r[Symbol(nodename(a))] = nodecontent(a)
     end
 
     # Check for non-empty text nodes under this element...
-    element_has_text = any(has_text, child_nodes(x))
+    element_has_text = any(has_text, eachnode(x))
 
     # Check for non-contiguous repetition of sub-element tags...
     element_has_mixed_tags = false
     tags = []
-    for c in child_elements(x)
-        tag = name(c)
+    for c in eachelement(x)
+        tag = nodename(c)
         if isempty(tags) || tag != tags[end]
             if tag in tags
                 element_has_mixed_tags = true
@@ -181,14 +186,13 @@ function xml_dict(x::XMLElement, dict_type::Type=OrderedDict; strip_text=false)
         r[""] = Any[]
     end
 
-    for c in child_nodes(x)
+    for c in eachnode(x)
 
-        if is_elementnode(c)
+        if iselement(c)
 
             # Get name and sub-dict for sub-element...
-            c = XMLElement(c)
-            n = name(c)
-            v = xml_dict(c,dict_type;strip_text=strip_text)
+            n = nodename(c)
+            v = xml_dict(c, dict_type; strip_text=strip_text)
 
             if haskey(r, "")
 
@@ -208,7 +212,7 @@ function xml_dict(x::XMLElement, dict_type::Type=OrderedDict; strip_text=false)
             end
 
         elseif is_text(c) && haskey(r, "")
-            push!(r[""], content(c))
+            push!(r[""], nodecontent(c))
         end
     end
 
@@ -217,7 +221,7 @@ function xml_dict(x::XMLElement, dict_type::Type=OrderedDict; strip_text=false)
         v = r[""]
 
         # If the vector contains a single text element, collapse the vector...
-        if length(v) == 1 && typeof(v[1]) <: AbstractString
+        if length(v) == 1 && isa(v[1], AbstractString)
             if strip_text
                 v[1] = strip(v[1])
             end
@@ -242,22 +246,26 @@ end
 #-------------------------------------------------------------------------------
 
 
-function dict_xml(root::Associative)
-    string("<?xml",attr_xml(root),"?>\n", node_xml(root))
+function dict_xml(root::AbstractDict)
+    string("<?xml", attr_xml(root), "?>\n", node_xml(root))
 end
 
+if VERSION >= v"0.7.0-DEV.1393" # filter is passed one pair instead of two arguments
+    attrs(node::AbstractDict) = filter(pair->isa(first(pair), Symbol), node)
+    nodes(node::AbstractDict) = filter(pair->!isa(first(pair), Symbol), node)
+else
+    attrs(node::AbstractDict) = filter((n,v)->isa(n, Symbol), node)
+    nodes(node::AbstractDict) = filter((n,v)->!isa(n, Symbol), node)
+end
 
-attrs(node::Associative) = filter((n,v)->isa(n, Symbol), node)
-nodes(node::Associative) = filter((n,v)->!isa(n, Symbol), node)
-
-function attr_xml(node::Associative)
-    string([" $n=\"$v\"" for (n,v) in attrs(node)]...)
+function attr_xml(node::AbstractDict)
+    join([" $n=\"$v\"" for (n,v) in attrs(node)])
 end
 
 attr_xml(node) = ""
 
 
-node_xml(node) = string([node_xml(n,v) for (n,v) in nodes(node)]...)
+node_xml(node) = join([node_xml(n,v) for (n,v) in nodes(node)])
 
 function node_xml(name::AbstractString, value::AbstractArray)
     value_xml(name != "" ? [Dict(name=>i) for i in value] : value)
@@ -266,23 +274,21 @@ end
 function node_xml(name::AbstractString, node)
     a = attr_xml(node)
     v = value_xml(node)
-    name == "" ? v : string("<",name,a,v == "" ? "/>" : ">$v</$name>")
+    name == "" ? v : string("<", name, a, v == "" ? "/>" : ">$v</$name>")
 end
 
 
 value_xml(value::Associative) = node_xml(value)
 
-value_xml(value::AbstractArray) = string([value_xml(v) for v in value]...)
+value_xml(value::AbstractArray) = join(map(value_xml, value))
 
 value_xml(value::AbstractString) = escape(value)
 
 
-
-import LightXML: Xstr, Xptr, _xcopystr, libxml2
-
 function escape(s::AbstractString)
-    p = ccall((:xmlEncodeEntitiesReentrant,libxml2), Xstr, (Xptr, Cstring), C_NULL, s)
-    (p != C_NULL ? _xcopystr(p) : "")::AbstractString
+    p = ccall((:xmlEncodeEntitiesReentrant, EzXML.libxml2), Ptr{UInt8},
+              (Ptr{Cvoid}, Cstring), C_NULL, s)
+    p == C_NULL ? "" : unsafe_string(p)
 end
 
 
