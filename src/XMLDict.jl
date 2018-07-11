@@ -62,6 +62,28 @@ function parse_xml(xml::AbstractString)
     return wrap(doc, doc)
 end
 
+# FIXME: This functionality is not currently available in EzXML, and this
+# way of getting it is not efficient
+function _parsedecl(doc::EzXML.Document)
+    buf = IOBuffer()
+    print(buf, doc)
+    seekstart(buf)
+    # Determine whether this document starts with an XML declaration
+    eof(buf) && return (nothing, nothing)
+    while Base.peek(buf) != UInt8('<')
+        read(buf, Char)
+    end
+    read(buf, Char) # Eat <
+    c = read(buf, Char)
+    c == '?' || return (nothing, nothing) # not a declaration
+    # Parse out the declaration portion and extract relevant data
+    decl = String(readuntil(buf, UInt8('?')))
+    encoding = match(r"encoding\s*=\s*\"([^\"]+)\"", decl)
+    version = match(r"version\s*=\s*\"([^\"]+)\"", decl)
+    encoding === nothing || (encoding = first(encoding.captures))
+    version === nothing || (version = first(version.captures))
+    return (encoding, version)
+end
 
 
 #-------------------------------------------------------------------------------
@@ -93,7 +115,7 @@ function XMLDict.get(x::EzXML.Node, doc::EzXML.Document, tag::AbstractString, de
     if isempty(l)
         return default
     end
-    if !haselement(l[1]) && isempty(attributes(l[1]))
+    if countelements(l[1]) == countattributes(l[1]) == 0
         l = map(strip∘nodecontent, l)
     else
         l = wrap(l, doc)
@@ -136,8 +158,13 @@ end
 
 function xml_dict(xml::EzXML.Document, dict_type::Type=OrderedDict; options...)
     r = dict_type()
-    r[:version] = "1.0"    # FIXME: EzXML does not have a way to query the version
-    r[:encoding] = "UTF-8" # FIXME: Similarly for the encoding
+    enc, ver = _parsedecl(xml)
+    if enc !== nothing
+        r[:encoding] = enc
+    end
+    if ver !== nothing
+        r[:version] = ver
+    end
     r[nodename(root(xml))] = xml_dict(root(xml), dict_type; options...)
     r
 end
@@ -278,7 +305,7 @@ function node_xml(name::AbstractString, node)
 end
 
 
-value_xml(value::Associative) = node_xml(value)
+value_xml(value::AbstractDict) = node_xml(value)
 
 value_xml(value::AbstractArray) = join(map(value_xml, value))
 
