@@ -159,11 +159,11 @@ end
 function xml_dict(xml::EzXML.Document, dict_type::Type=OrderedDict; options...)
     r = dict_type()
     enc, ver = _parsedecl(xml)
-    if enc !== nothing
-        r[:encoding] = enc
-    end
     if ver !== nothing
         r[:version] = ver
+    end
+    if enc !== nothing
+        r[:encoding] = enc
     end
     r[nodename(root(xml))] = xml_dict(root(xml), dict_type; options...)
     r
@@ -286,7 +286,9 @@ else
 end
 
 function attr_xml(node::AbstractDict)
-    join([" $n=\"$v\"" for (n,v) in attrs(node)])
+    # version always needs to come first, so sort descending by key
+    a = sort!(collect(attrs(node)), rev=true, by=first)
+    join([" $n=\"$v\"" for (n,v) in a])
 end
 
 attr_xml(node) = ""

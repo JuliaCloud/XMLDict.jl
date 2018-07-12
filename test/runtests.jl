@@ -13,11 +13,14 @@ function xdict(xml)
 end
 
 function json_dump(dict)
-
-    open(`xargs -0 node -e "var o; o = JSON.parse(process.argv[1]);
-                            var u; u = require('util'); 
-                            console.log(u.inspect(o, {depth:null, colors: true}));"
-          `, "w", stdout) do io
+    nodejs = something(Compat.Sys.which("node"), Compat.Sys.which("nodejs"))
+    cmd = ```
+        xargs -0 $nodejs -e "
+            var o = JSON.parse(process.argv[1]);
+            var u = require('util');
+            console.log(u.inspect(o, {depth: null, colors: true}));"
+    ```
+    open(cmd, "w", stdout) do io
         write(io, json(dict))
     end
 end
