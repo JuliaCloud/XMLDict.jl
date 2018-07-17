@@ -62,29 +62,6 @@ function parse_xml(xml::AbstractString)
     return wrap(doc, doc)
 end
 
-# FIXME: This functionality is not currently available in EzXML, and this
-# way of getting it is not efficient
-function _parsedecl(doc::EzXML.Document)
-    buf = IOBuffer()
-    print(buf, doc)
-    seekstart(buf)
-    # Determine whether this document starts with an XML declaration
-    eof(buf) && return (nothing, nothing)
-    while Base.peek(buf) != UInt8('<')
-        read(buf, Char)
-    end
-    read(buf, Char) # Eat <
-    c = read(buf, Char)
-    c == '?' || return (nothing, nothing) # not a declaration
-    # Parse out the declaration portion and extract relevant data
-    decl = String(readuntil(buf, UInt8('?')))
-    encoding = match(r"encoding\s*=\s*\"([^\"]+)\"", decl)
-    version = match(r"version\s*=\s*\"([^\"]+)\"", decl)
-    encoding === nothing || (encoding = first(encoding.captures))
-    version === nothing || (version = first(version.captures))
-    return (encoding, version)
-end
-
 
 #-------------------------------------------------------------------------------
 # Dynamic Associative Implementation for XMLElement
@@ -158,12 +135,9 @@ end
 
 function xml_dict(xml::EzXML.Document, dict_type::Type=OrderedDict; options...)
     r = dict_type()
-    enc, ver = _parsedecl(xml)
-    if ver !== nothing
-        r[:version] = ver
-    end
-    if enc !== nothing
-        r[:encoding] = enc
+    r[:version] = version(xml)
+    try
+        r[:encoding] = encoding(xml)
     end
     r[nodename(root(xml))] = xml_dict(root(xml), dict_type; options...)
     r
@@ -286,9 +260,7 @@ else
 end
 
 function attr_xml(node::AbstractDict)
-    # version always needs to come first, so sort descending by key
-    a = sort!(collect(attrs(node)), rev=true, by=first)
-    join([" $n=\"$v\"" for (n,v) in a])
+    join([" $n=\"$v\"" for (n,v) in attrs(node)])
 end
 
 attr_xml(node) = ""
