@@ -138,6 +138,7 @@ function xml_dict(xml::EzXML.Document, dict_type::Type=OrderedDict; options...)
     r[:version] = version(xml)
     try
         r[:encoding] = encoding(xml)
+    catch
     end
     r[nodename(root(xml))] = xml_dict(root(xml), dict_type; options...)
     r
@@ -252,8 +253,11 @@ function dict_xml(root::AbstractDict)
 end
 
 if VERSION >= v"0.7.0-DEV.1393" # filter is passed one pair instead of two arguments
-    attrs(node::AbstractDict) = filter(pair->isa(first(pair), Symbol), node)
-    nodes(node::AbstractDict) = filter(pair->!isa(first(pair), Symbol), node)
+    # FIXME: We can go back to using filter instead of filter! once
+    # https://github.com/JuliaCollections/DataStructures.jl/issues/400 is fixed.
+    # Calling filter! with copy is equivalent but inefficient.
+    attrs(node::AbstractDict) = filter!(pair->isa(first(pair), Symbol), copy(node))
+    nodes(node::AbstractDict) = filter!(pair->!isa(first(pair), Symbol), copy(node))
 else
     attrs(node::AbstractDict) = filter((n,v)->isa(n, Symbol), node)
     nodes(node::AbstractDict) = filter((n,v)->!isa(n, Symbol), node)
