@@ -251,13 +251,8 @@ function dict_xml(root::AbstractDict)
     string("<?xml", attr_xml(root), "?>\n", node_xml(root))
 end
 
-if VERSION >= v"0.7.0-DEV.1393" # filter is passed one pair instead of two arguments
-    attrs(node::AbstractDict) = filter(pair->isa(first(pair), Symbol), node)
-    nodes(node::AbstractDict) = filter(pair->!isa(first(pair), Symbol), node)
-else
-    attrs(node::AbstractDict) = filter((n,v)->isa(n, Symbol), node)
-    nodes(node::AbstractDict) = filter((n,v)->!isa(n, Symbol), node)
-end
+attrs(node::AbstractDict) = filter(pair->isa(first(pair), Symbol), node)
+nodes(node::AbstractDict) = filter(pair->!isa(first(pair), Symbol), node)
 
 function attr_xml(node::AbstractDict)
     join([" $n=\"$v\"" for (n,v) in attrs(node)])
