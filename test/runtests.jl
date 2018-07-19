@@ -1,5 +1,6 @@
 using XMLDict
-using Base.Test
+using Compat
+using Compat.Test
 using JSON
 
 
@@ -12,11 +13,14 @@ function xdict(xml)
 end
 
 function json_dump(dict)
-
-    open(`xargs -0 node -e "var o; o = JSON.parse(process.argv[1]);
-                            var u; u = require('util'); 
-                            console.log(u.inspect(o, {depth:null, colors: true}));"
-          `, "w", STDOUT) do io
+    nodejs = something(Compat.Sys.which("node"), Compat.Sys.which("nodejs"))
+    cmd = ```
+        xargs -0 $nodejs -e "
+            var o = JSON.parse(process.argv[1]);
+            var u = require('util');
+            console.log(u.inspect(o, {depth: null, colors: true}));"
+    ```
+    open(cmd, "w", stdout) do io
         write(io, json(dict))
     end
 end
@@ -124,18 +128,19 @@ xml3 = """
 </GetQueueAttributesResponse>
 """
 
-xml = parse_xml(xml3)
-d = Dict(Pair[a["Name"] => a["Value"] for a in xml["GetQueueAttributesResult"]["Attribute"]])
+let xml = parse_xml(xml3)
+    d = Dict(a["Name"] => a["Value"] for a in xml["GetQueueAttributesResult"]["Attribute"])
 
-@test d["MessageRetentionPeriod"] == "345600"
-@test d["CreatedTimestamp"] == "1286771522"
+    @test d["MessageRetentionPeriod"] == "345600"
+    @test d["CreatedTimestamp"] == "1286771522"
+end
 
-xml = xdict(xml3)
-d = Dict(Pair[a["Name"] => a["Value"] for a in xml["GetQueueAttributesResult"]["Attribute"]])
+let xml = xdict(xml3)
+    d = Dict(a["Name"] => a["Value"] for a in xml["GetQueueAttributesResult"]["Attribute"])
 
-@test d["MessageRetentionPeriod"] == "345600"
-@test d["CreatedTimestamp"] == "1286771522"
-
+    @test d["MessageRetentionPeriod"] == "345600"
+    @test d["CreatedTimestamp"] == "1286771522"
+end
 
 xml4 = """
 <?xml version="1.0" encoding="UTF-8"?>
@@ -426,16 +431,22 @@ xml9 = """
 </table>
 """
 
-xml10 = readstring("REC-xml-20081126.xml")
+xml10 = read("REC-xml-20081126.xml", String)
 
 function normalise_xml(xml)
-    o,i,p = readandwrite(
-        `bash -c 'xmllint --noent --format --nocdata - | sed s/\ xmlns=\".*\"//g' `)
-    write(i, xml)
-    close(i)
-    readstring(o)
+    cmd = `bash -c 'xmllint --noent --format --nocdata - | sed s/\ xmlns=\".*\"//g'`
+    @static if VERSION >= v"0.7.0-DEV.3427"
+        p = open(cmd, "r+")
+        write(p, xml)
+        close(p.in)
+        return read(p, String)
+    else
+        o, i, p = readandwrite(cmd)
+        write(i, xml)
+        close(i)
+        return read(o, String)
+    end
 end
-
 
 
 for xml in [xml1, xml2, xml3, xml4, xml5, xml6, xml7, xml8, xml9, xml10]
@@ -446,9 +457,10 @@ for xml in [xml1, xml2, xml3, xml4, xml5, xml6, xml7, xml8, xml9, xml10]
 
         json_dump(xml_dict(xml))
 
-        write("/tmp/a", normalise_xml(xml))
-        write("/tmp/b", normalise_xml(XMLDict.dict_xml(xml_dict(xml))))
-        run(`opendiff /tmp/a /tmp/b`)
+        # For interactive use on macOS
+        #write("/tmp/a", normalise_xml(xml))
+        #write("/tmp/b", normalise_xml(XMLDict.dict_xml(xml_dict(xml))))
+        #run(`opendiff /tmp/a /tmp/b`)
     end
 
 
