@@ -1,5 +1,4 @@
 julia 0.7-DEV.1393
-Compat 0.60.0
 EzXML
-DataStructures
+DataStructures 0.10.0
 IterTools
