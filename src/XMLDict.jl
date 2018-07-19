@@ -252,8 +252,11 @@ function dict_xml(root::AbstractDict)
     string("<?xml", attr_xml(root), "?>\n", node_xml(root))
 end
 
-attrs(node::AbstractDict) = filter(pair->isa(first(pair), Symbol), node)
-nodes(node::AbstractDict) = filter(pair->!isa(first(pair), Symbol), node)
+# FIXME: We can go back to using filter instead of filter! once
+# https://github.com/JuliaCollections/DataStructures.jl/issues/400 is fixed.
+# Calling filter! with copy is equivalent but inefficient.
+attrs(node::AbstractDict) = filter!(pair->isa(first(pair), Symbol), copy(node))
+nodes(node::AbstractDict) = filter!(pair->!isa(first(pair), Symbol), copy(n
 
 function attr_xml(node::AbstractDict)
     join([" $n=\"$v\"" for (n,v) in attrs(node)])
