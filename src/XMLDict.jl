@@ -256,7 +256,7 @@ end
 # https://github.com/JuliaCollections/DataStructures.jl/issues/400 is fixed.
 # Calling filter! with copy is equivalent but inefficient.
 attrs(node::AbstractDict) = filter!(pair->isa(first(pair), Symbol), copy(node))
-nodes(node::AbstractDict) = filter!(pair->!isa(first(pair), Symbol), copy(n
+nodes(node::AbstractDict) = filter!(pair->!isa(first(pair), Symbol), copy(node))
 
 function attr_xml(node::AbstractDict)
     join([" $n=\"$v\"" for (n,v) in attrs(node)])
