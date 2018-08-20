@@ -1,4 +1,4 @@
-julia 0.7-DEV.1393
+julia 1.0
 EzXML
 DataStructures 0.10.0
 IterTools
