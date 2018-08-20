@@ -1,6 +1,5 @@
 using XMLDict
-using Compat
-using Compat.Test
+using Test
 using JSON
 
 
