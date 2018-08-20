@@ -37,13 +37,13 @@ Base.get(x::XMLDictElement, k, d=nothing) = XMLDict.get(x.x, x.doc, k, d)
 Base.keys(x::XMLDictElement) = XMLDict.keys(x.x)
 Base.length(x::XMLDictElement) = length(collect(keys(x)))
 
-function Base.start(x::XMLDictElement)
+function Base.iterate(x::XMLDictElement)
     x.g = (Pair{Union{String,Symbol},Any}(n, (get(x, n))) for n in keys(x))
-    start(x.g)
+    iterate(x.g)
 end
-Base.done(x::XMLDictElement, s) = done(x.g, s)
-Base.next(x::XMLDictElement, s) = next(x.g, s)
-
+function Base.iterate(x::XMLDictElement, isdone::Any)
+    iterate(x.g, isdone)
+end
 xml_dict(x, args...; options...) = xml_dict(x.x, args...; options...)
 
 Base.show(io::IO, x::XMLDictElement) = show(io, x.x)
