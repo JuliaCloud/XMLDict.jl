@@ -12,7 +12,7 @@ function xdict(xml)
 end
 
 function json_dump(dict)
-    nodejs = something(Compat.Sys.which("node"), Compat.Sys.which("nodejs"))
+    nodejs = something(Sys.which("node"), Sys.which("nodejs"))
     cmd = ```
         xargs -0 $nodejs -e "
             var o = JSON.parse(process.argv[1]);
