@@ -14,9 +14,9 @@ export parse_xml, xml_dict
 
 
 using EzXML
-using DataStructures
 using Base.Iterators
 using IterTools
+using OrderedCollections: OrderedDict
 
 
 #-------------------------------------------------------------------------------
