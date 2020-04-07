@@ -1,6 +1,6 @@
 name = "XMLDict"
 uuid = "228000da-037f-5747-90a9-8195ccbf91a5"
-version = "0.4.0"
+version = "0.4.1"
 
 [deps]
 EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
