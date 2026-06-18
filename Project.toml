@@ -11,7 +11,7 @@ OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 EzXML = "0.7, 0.8, 0.9, 1"
 IterTools = "1"
 JSON = "0.18, 0.19, 0.20, 0.21"
-OrderedCollections = "0.1, 1"
+OrderedCollections = "0.1, 1, 2"
 julia = "1"
 
 [extras]
